@@ -86,7 +86,7 @@ typedef int tid_t;
  * ready state is on the run queue, whereas only a thread in the
  * blocked state is on a semaphore wait list. */
 struct thread {
-	/* Owned by thread.c. */
+	/* Owned by thread.c. */   
 	tid_t tid;                          /* Thread identifier. */
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
@@ -96,7 +96,8 @@ struct thread {
 	struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
-	/* Owned by userprog/process.c. */
+	/* Owned by user
+	prog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
 #endif
 #ifdef VM
@@ -107,6 +108,7 @@ struct thread {
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
+	int64_t local_tick;    /* local tick */
 };
 
 /* If false (default), use round-robin scheduler.
@@ -132,8 +134,10 @@ const char *thread_name (void);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
+void thread_sleep (int64_t ticks); //added
 
 int thread_get_priority (void);
+
 void thread_set_priority (int);
 
 int thread_get_nice (void);
@@ -142,5 +146,9 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+int64_t return_mintick();
+void save_mintick();
+void pop_mintick();
 
 #endif /* threads/thread.h */

@@ -7,6 +7,7 @@
 #include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "lib/kernel/list.h" // manually added
 
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -24,10 +25,12 @@ static int64_t ticks;
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
 
+
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
+
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -90,11 +93,19 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
-	int64_t start = timer_ticks ();
-
-	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+	int64_t start = timer_ticks (); // OS부팅후 지난틱시간
+	// printf("start= %lld \n",start);
+	ASSERT (intr_get_level () == INTR_ON); //인터럽트 상태
+	
+	/* original code */
+	//start 이후 경과한 시간이 틱보다 작을경우, 계속 thread_yield()를 해줌
+	// while (timer_elapsed (start) < ticks) 
+	// 	thread_yield ();
+	if(timer_elapsed (start) < ticks){
+		thread_sleep(start+ticks);
+	}
+	
+	
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -126,6 +137,18 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+	
+	if( return_mintick() <= ticks){
+		pop_mintick();
+	}
+
+	/*TODO
+	code to add:
+	check sleep list and the global tick.
+	find any threads to wake up,
+	move them to the ready list if necessary.
+	update the global tick.
+	*/ 
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

@@ -15,6 +15,8 @@
 #include "userprog/process.h"
 #endif
 
+
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -28,6 +30,9 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* List of process in BLOCKED STATE */
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -39,6 +44,8 @@ static struct lock tid_lock;
 
 /* Thread destruction requests */
 static struct list destruction_req;
+
+
 
 /* Statistics. */
 static long long idle_ticks;    /* # of timer ticks spent idle. */
@@ -62,6 +69,8 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
+bool compare_local_tick(const struct list_elem *a, const struct list_elem *b, void *aux);
+
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -92,6 +101,20 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
    It is not safe to call thread_current() until this function
    finishes. */
+static int64_t min_tick;
+int64_t return_mintick(){
+	return min_tick;
+}
+void save_mintick(){
+	struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
+	min_tick = t->local_tick;
+	return;
+}
+void pop_mintick(){
+	struct thread* t = list_entry(list_pop_front(&sleep_list), struct thread, elem);
+	thread_unblock(t); // wake up
+}
+
 void
 thread_init (void) {
 	ASSERT (intr_get_level () == INTR_OFF);
@@ -109,6 +132,10 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
+	
+	list_init (&sleep_list); // added
+
+
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -133,8 +160,46 @@ thread_start (void) {
 	sema_down (&idle_started);
 }
 
+void
+thread_sleep(int64_t ticks){
+	
+	enum intr_level old_level;
+
+	struct thread *curr = thread_current();
+	old_level = intr_disable ();
+	if (curr != idle_thread){
+		curr->status = THREAD_BLOCKED;
+		curr->local_tick = ticks;
+		list_insert_ordered(&sleep_list, &curr->elem , compare_local_tick, NULL);
+		//list_insert_ordered (struct list *list, struct list_elem *elem, list_less_func *less, void *aux) {
+	}
+	schedule();
+	intr_set_level (old_level);
+
+
+
+			
+	/* TODO
+
+	if the current thread is not idle thread,
+	change the state of the caller thread to BLOCKED and put it to the sleep queue,
+	store the local tick to wake up,
+	update the global tick if necessary,
+	and call schedule()
+
+	When you manipulate thread list, disable interrupt
+	*/
+}
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
+
+
+
+bool compare_local_tick(const struct list_elem *a, const struct list_elem *b, void *aux) {
+    struct thread *thread_a = list_entry(a, struct thread, elem);
+    struct thread *thread_b = list_entry(b, struct thread, elem);
+    return thread_a->local_tick < thread_b->local_tick;
+}
 void
 thread_tick (void) {
 	struct thread *t = thread_current ();
