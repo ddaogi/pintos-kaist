@@ -101,16 +101,23 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
    It is not safe to call thread_current() until this function
    finishes. */
-static int64_t min_tick;
+static int64_t min_tick = INT64_MAX;
 int64_t return_mintick(){
 	return min_tick;
 }
 void save_mintick(){
+	if(list_empty(&sleep_list)) {
+		min_tick = INT64_MAX;
+		return;
+	}
+		
 	struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
 	min_tick = t->local_tick;
 	return;
 }
 void pop_mintick(){
+	// if(list_empty(&sleep_list))
+	// 	return;
 	struct thread* t = list_entry(list_pop_front(&sleep_list), struct thread, elem);
 	thread_unblock(t); // wake up
 }
@@ -132,7 +139,6 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
-	
 	list_init (&sleep_list); // added
 
 
@@ -170,6 +176,8 @@ thread_sleep(int64_t ticks){
 	if (curr != idle_thread){
 		curr->status = THREAD_BLOCKED;
 		curr->local_tick = ticks;
+		if(min_tick == INT64_MAX)
+			min_tick = ticks;
 		list_insert_ordered(&sleep_list, &curr->elem , compare_local_tick, NULL);
 		//list_insert_ordered (struct list *list, struct list_elem *elem, list_less_func *less, void *aux) {
 	}

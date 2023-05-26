@@ -15,7 +15,7 @@
 #error 8254 timer requires TIMER_FREQ >= 19
 #endif
 #if TIMER_FREQ > 1000
-#error TIMER_FREQ <= 1000 recommended
+#error TIMER_FREQ <= 1000 remended
 #endif
 
 /* Number of timer ticks since OS booted. */
@@ -140,6 +140,7 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	
 	if( return_mintick() <= ticks){
 		pop_mintick();
+		save_mintick();
 	}
 
 	/*TODO
