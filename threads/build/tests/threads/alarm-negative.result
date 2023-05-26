@@ -1,0 +1,13 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (alarm-negative) begin
+  (alarm-negative) PASS
+  (alarm-negative) end
+Differences in `diff -u' format:
+  (alarm-negative) begin
+- (alarm-negative) PASS
++ tid=1 -77
++  @@@@@@@@@@@@@@@@@@@@@@(alarm-negative) PASS
+  (alarm-negative) end

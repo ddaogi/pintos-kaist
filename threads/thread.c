@@ -119,7 +119,8 @@ void pop_mintick(){
 	// if(list_empty(&sleep_list))
 	// 	return;
 	struct thread* t = list_entry(list_pop_front(&sleep_list), struct thread, elem);
-	thread_unblock(t); // wake up
+	printf("tid=%d %lld\n @@@@@@@@@@@@@@@@@@@@@@", t->tid, t->local_tick);
+	thread_unblock(t); // wake up  thread를 readylist에 넣어줌
 }
 
 void
@@ -168,18 +169,17 @@ thread_start (void) {
 
 void
 thread_sleep(int64_t ticks){
-	
 	enum intr_level old_level;
 
 	struct thread *curr = thread_current();
-	old_level = intr_disable ();
+	old_level = intr_disable();
 	if (curr != idle_thread){
 		curr->status = THREAD_BLOCKED;
 		curr->local_tick = ticks;
 		if(min_tick == INT64_MAX)
 			min_tick = ticks;
 		list_insert_ordered(&sleep_list, &curr->elem , compare_local_tick, NULL);
-		//list_insert_ordered (struct list *list, struct list_elem *elem, list_less_func *less, void *aux) {
+		
 	}
 	schedule();
 	intr_set_level (old_level);

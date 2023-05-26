@@ -101,11 +101,10 @@ timer_sleep (int64_t ticks) {
 	//start 이후 경과한 시간이 틱보다 작을경우, 계속 thread_yield()를 해줌
 	// while (timer_elapsed (start) < ticks) 
 	// 	thread_yield ();
-	if(timer_elapsed (start) < ticks){
-		thread_sleep(start+ticks);
-	}
 	
-	
+	// if(timer_elapsed (start) < ticks){
+	thread_sleep(start+ticks);
+	// }
 }
 
 /* Suspends execution for approximately MS milliseconds. */
