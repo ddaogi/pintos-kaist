@@ -310,9 +310,12 @@ thread_create (const char *name, int priority,
 	thread_unblock (t);
 
 	//TODO
+	if (thread_get_priority() < t->priority){
+		thread_yield();
+	}
 	/* 실행중인 스레드와 새로운 스레드의 우선순위 비교해서 yield할지 말지 결정	*/
 	// ready를 넣고, yield해야지
-
+	
 
 	return tid;
 }
@@ -341,16 +344,16 @@ thread_block (void) {
    update other data. */
 void
 thread_unblock (struct thread *t) {
-	// enum intr_level old_level;
+	enum intr_level old_level;
 
 	ASSERT (is_thread (t));
 
-	// old_level = intr_disable ();
+	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 	// list_push_back (&ready_list, &t->elem);
 	list_insert_ordered(&ready_list, &t->elem, compare_priority, NULL);
 	t->status = THREAD_READY;
-	// intr_set_level (old_level);
+	intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */
@@ -421,6 +424,16 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+
+	if (!list_empty(&ready_list)){
+		struct thread *t = list_entry(list_front(&ready_list), struct thread, elem);
+		if(new_priority < t->priority){
+			thread_yield();
+		}
+	}
+	/*
+	reorder ready_list
+	*/
 }
 
 /* Returns the current thread's priority. */
