@@ -137,10 +137,11 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
 	
-	if( return_mintick() <= ticks){
-		pop_mintick();
-		save_mintick();
-	}
+	// while( return_mintick() <= ticks){
+	// 	pop_mintick();
+	// 	save_mintick();
+	// }
+	wakeup(ticks);
 
 	/*TODO
 	code to add:

@@ -150,5 +150,5 @@ void do_iret (struct intr_frame *tf);
 int64_t return_mintick();
 void save_mintick();
 void pop_mintick();
-
+void wakeup(int64_t);
 #endif /* threads/thread.h */

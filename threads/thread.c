@@ -72,6 +72,7 @@ static tid_t allocate_tid (void);
 bool compare_local_tick(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 
+
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
@@ -102,25 +103,39 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
    It is not safe to call thread_current() until this function
    finishes. */
 static int64_t min_tick = INT64_MAX;
+
+void wakeup(int64_t ticks){
+	
+	while( return_mintick() <= ticks){
+		pop_mintick();
+		save_mintick();
+	}
+	return;
+}
 int64_t return_mintick(){
 	return min_tick;
 }
 void save_mintick(){
+	
 	if(list_empty(&sleep_list)) {
 		min_tick = INT64_MAX;
 		return;
 	}
-		
+	
 	struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
 	min_tick = t->local_tick;
+	
 	return;
 }
 void pop_mintick(){
 	// if(list_empty(&sleep_list))
 	// 	return;
+	enum intr_level old_level;
+	old_level = intr_disable();
 	struct thread* t = list_entry(list_pop_front(&sleep_list), struct thread, elem);
-	printf("tid=%d %lld\n @@@@@@@@@@@@@@@@@@@@@@", t->tid, t->local_tick);
 	thread_unblock(t); // wake up  thread를 readylist에 넣어줌
+	intr_set_level (old_level);
+
 }
 
 void
@@ -179,7 +194,7 @@ thread_sleep(int64_t ticks){
 		if(min_tick == INT64_MAX)
 			min_tick = ticks;
 		list_insert_ordered(&sleep_list, &curr->elem , compare_local_tick, NULL);
-		
+		save_mintick();
 	}
 	schedule();
 	intr_set_level (old_level);
@@ -307,15 +322,15 @@ thread_block (void) {
    update other data. */
 void
 thread_unblock (struct thread *t) {
-	enum intr_level old_level;
+	// enum intr_level old_level;
 
 	ASSERT (is_thread (t));
 
-	old_level = intr_disable ();
+	// old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 	list_push_back (&ready_list, &t->elem);
 	t->status = THREAD_READY;
-	intr_set_level (old_level);
+	// intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */
