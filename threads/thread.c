@@ -173,7 +173,9 @@ thread_start (void) {
 	/* Create the idle thread. */
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
-	thread_create ("idle", PRI_MIN, idle, &idle_started);
+	// thread_create ("idle", PRI_MIN, idle, &idle_started);
+	thread_create ("idle", PRI_DEFAULT, idle, &idle_started);
+// 
 
 	/* Start preemptive thread scheduling. */
 	intr_enable ();
@@ -221,7 +223,19 @@ thread_sleep(int64_t ticks){
 bool compare_local_tick(const struct list_elem *a, const struct list_elem *b, void *aux) {
     struct thread *thread_a = list_entry(a, struct thread, elem);
     struct thread *thread_b = list_entry(b, struct thread, elem);
-    return thread_a->local_tick < thread_b->local_tick;
+	if (thread_a -> local_tick == thread_b->local_tick) {
+		return thread_a->priority > thread_b -> priority;
+	}
+	else{
+	    return thread_a->local_tick < thread_b->local_tick;
+	}
+}
+
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux){
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+    struct thread *thread_b = list_entry(b, struct thread, elem);
+	return thread_a->priority > thread_b -> priority;
+
 }
 void
 thread_tick (void) {
@@ -295,6 +309,11 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	//TODO
+	/* 실행중인 스레드와 새로운 스레드의 우선순위 비교해서 yield할지 말지 결정	*/
+	// ready를 넣고, yield해야지
+
+
 	return tid;
 }
 
@@ -328,7 +347,8 @@ thread_unblock (struct thread *t) {
 
 	// old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	// list_push_back (&ready_list, &t->elem);
+	list_insert_ordered(&ready_list, &t->elem, compare_priority, NULL);
 	t->status = THREAD_READY;
 	// intr_set_level (old_level);
 }
@@ -391,7 +411,8 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		// list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
