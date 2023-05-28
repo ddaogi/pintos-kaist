@@ -203,17 +203,7 @@ thread_sleep(int64_t ticks){
 
 
 
-			
-	/* TODO
-
-	if the current thread is not idle thread,
-	change the state of the caller thread to BLOCKED and put it to the sleep queue,
-	store the local tick to wake up,
-	update the global tick if necessary,
-	and call schedule()
-
-	When you manipulate thread list, disable interrupt
-	*/
+	/* modified */
 }
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
@@ -309,12 +299,14 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
-	//TODO
+	//TODO/* 실행중인 스레드와 새로운 스레드의 우선순위 비교해서 yield할지 말지 결정	*/
+	// ready를 넣고, yield해야지   
 	if (thread_get_priority() < t->priority){
 		thread_yield();
 	}
-	/* 실행중인 스레드와 새로운 스레드의 우선순위 비교해서 yield할지 말지 결정	*/
-	// ready를 넣고, yield해야지
+
+
+	
 	
 
 	return tid;
@@ -423,6 +415,9 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
+	/*added_sk*/
+	
+
 	thread_current ()->priority = new_priority;
 
 	if (!list_empty(&ready_list)){
@@ -431,8 +426,8 @@ thread_set_priority (int new_priority) {
 			thread_yield();
 		}
 	}
-	/*
-	reorder ready_list
+	/* TODO
+	Set priority considering the donation
 	*/
 }
 
@@ -531,6 +526,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+
+	/*Initialize data structure for priority donation*/ // modified 
+	t->priority_origin = priority;
+	t->wait_on_lock = NULL;
+	list_init(&t->donations);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

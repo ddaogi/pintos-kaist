@@ -67,6 +67,7 @@ sema_down (struct semaphore *sema) {
 	old_level = intr_disable ();
 	while (sema->value == 0) {
 		list_push_back (&sema->waiters, &thread_current ()->elem);
+		//TODO
 		thread_block ();
 	}
 	sema->value--;
@@ -182,14 +183,37 @@ lock_init (struct lock *lock) {
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
+
 void
 lock_acquire (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
-	ASSERT (!lock_held_by_current_thread (lock));
+	ASSERT (!lock_held_by_current_thread (lock)); // 현재 쓰레드가 lock이 아니어야 통과
 
-	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+	
+	// lock->holder = thread_current ();
+	if( lock->holder != NULL){
+		thread_current()->wait_on_lock = &lock;
+		if(lock->holder->priority < thread_current()->priority){
+			//priority donation
+			lock->holder->priority_origin = lock->holder->priority;
+			lock->holder->priority = thread_current()->priority;
+			list_insert(&lock->holder->donations, &thread_current()->d_elem);
+		}
+	}
+	else{
+		lock->holder = thread_current();
+		sema_down (&lock->semaphore);
+	}
+
+	
+	/*TODO
+	If the lock is not available, store address of the lock.
+	Store the current priority and maintain donated threads on list (multiple donation).
+	Donate priority.
+
+
+*/
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -224,6 +248,10 @@ lock_release (struct lock *lock) {
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
+
+	/*TODO
+	When the lock is released, remove the thread that holds the lock on donation list and set priority properly.
+	*/
 }
 
 /* Returns true if the current thread holds LOCK, false
@@ -283,6 +311,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 
 	sema_init (&waiter.semaphore, 0);
 	list_push_back (&cond->waiters, &waiter.elem);
+	//TODO
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
 	lock_acquire (lock);

@@ -109,6 +109,14 @@ struct thread {
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
 	int64_t local_tick;    /* local tick */
+
+
+	/* for priority donation TODO*/
+	struct list_elem d_elem;
+	int priority_origin;
+	struct lock* wait_on_lock;
+	struct list donations;
+
 };
 
 /* If false (default), use round-robin scheduler.
@@ -147,8 +155,12 @@ int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
 
+/*added*/
 int64_t return_mintick();
 void save_mintick();
 void pop_mintick();
 void wakeup(int64_t);
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_local_tick(const struct list_elem *a, const struct list_elem *b, void *aux);
 #endif /* threads/thread.h */
+
