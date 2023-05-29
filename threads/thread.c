@@ -346,6 +346,7 @@ thread_unblock (struct thread *t) {
 	list_insert_ordered(&ready_list, &t->elem, compare_priority, NULL);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
+
 }
 
 /* Returns the name of the running thread. */
@@ -419,6 +420,7 @@ thread_set_priority (int new_priority) {
 	
 
 	thread_current ()->priority = new_priority;
+	thread_current() ->priority_origin = new_priority; //modified jg
 
 	if (!list_empty(&ready_list)){
 		struct thread *t = list_entry(list_front(&ready_list), struct thread, elem);
