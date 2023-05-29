@@ -115,7 +115,9 @@ sema_up (struct semaphore *sema) {
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
 	sema->value++;
+		
 	intr_set_level (old_level);
+	thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -198,12 +200,13 @@ lock_acquire (struct lock *lock) {
 			//priority donation
 			lock->holder->priority_origin = lock->holder->priority; //store the current priority 
 			lock->holder->priority = thread_current()->priority;
-			list_insert(&lock->holder->donations, &thread_current()->d_elem); // maintain donated thrads on list
+			
+			list_push_back(&lock->holder->donations, &thread_current()->d_elem); // maintain donated thrads on list
 		}
 	}
-	else{
+	// else{
 		lock->holder = thread_current();
-	}
+	// }
 	sema_down (&lock->semaphore);
 
 	
@@ -243,11 +246,13 @@ lock_try_acquire (struct lock *lock) {
    handler. */
 void
 lock_release (struct lock *lock) {
+	
 	ASSERT (lock != NULL);
-	ASSERT (lock_held_by_current_thread (lock));
+	// if(!lock_held_by_current_thread (lock) ) return; 
+	ASSERT (lock_held_by_current_thread (lock)); // 현재 스레드가 락을 안가지고 있는데,  release를 해주려다 오류남
 
 	int64_t donation_max_pri = lock->holder->priority_origin;
-	for(struct list_elem *p = &lock->holder->donations.head; list_next(&p) == NULL; ){
+	for(struct list_elem *p = &lock->holder->donations.head; p->next == NULL; ){
 		struct thread *temp_t = list_entry(p, struct thread, d_elem);
 		if (temp_t->wait_on_lock == lock){
 			p = list_remove(&p);
@@ -279,8 +284,9 @@ lock_release (struct lock *lock) {
 bool
 lock_held_by_current_thread (const struct lock *lock) {
 	ASSERT (lock != NULL);
-
-	return lock->holder == thread_current ();
+	
+	
+	return lock->holder == thread_current (); //이게 false
 }
 
 /* One semaphore in a list. */
@@ -329,10 +335,14 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	sema_init (&waiter.semaphore, 0);
-	// list_push_back (&cond->waiters, &waiter.elem);
-	list_insert_ordered(&cond->waiters, &waiter.elem, compare_priority, NULL); //modified
+	list_push_back (&cond->waiters, &waiter.elem);
+	
+	// list_insert_ordered(&cond->waiters, &waiter.elem, compare_priority, NULL); //modified
 	//TODO
+	// printf("%d   %d \n\n", lock->holder->tid, thread_current()->tid);
+	enum intr_level old_level= intr_disable ();	
 	lock_release (lock);
+	intr_set_level (old_level);
 	sema_down (&waiter.semaphore);
 	lock_acquire (lock);
 }
