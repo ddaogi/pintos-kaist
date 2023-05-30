@@ -413,7 +413,7 @@ thread_set_priority (int new_priority) {
 	/*added_sk*/
 	
 
-	thread_current ()->priority = new_priority;
+	// thread_current ()->priority = new_priority;
 	thread_current() ->priority_origin = new_priority; //modified jg
 
 	if (!list_empty(&ready_list)){

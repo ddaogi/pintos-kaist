@@ -196,10 +196,10 @@ lock_acquire (struct lock *lock) {
 
 	
 	if( lock->holder != NULL){
-		thread_current()->wait_on_lock = &lock;
+		thread_current()->wait_on_lock = lock;
 		if(lock->holder->priority < thread_current()->priority){
 			//priority donation
-			lock->holder->priority_origin = lock->holder->priority; //store the current priority 
+			// lock->holder->priority_origin = lock->holder->priority; //store the current priority 
 			lock->holder->priority = thread_current()->priority;
 			// maintain donated thrads on list
 		}
@@ -252,7 +252,12 @@ lock_release (struct lock *lock) {
 
 	int64_t donation_max_pri = lock->holder->priority_origin;
 	
-	for(struct list_elem *p = &lock->holder->donations.head; p->next == NULL; ){
+	// for(struct list_elem *p = &lock->holder->donations.head; p->next == NULL; ){
+	// for(struct list_elem *p = list_front(&lock->holder->donations); p->next == NULL; ){
+	
+	
+	
+	for(struct list_elem *p = &lock->holder->donations.head.next; p!=&lock->holder->donations.tail;){
 		struct thread *temp_t = list_entry(p, struct thread, d_elem);
 	
 		if (temp_t->wait_on_lock == lock){
@@ -265,6 +270,8 @@ lock_release (struct lock *lock) {
 			p = list_next(&p);
 		}
 	}
+	
+	
 	// msg("donation max pri = %d\n\n", donation_max_pri);
 	lock->holder->priority = donation_max_pri;
 	lock->holder = NULL;
