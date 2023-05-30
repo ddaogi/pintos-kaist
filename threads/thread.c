@@ -297,18 +297,12 @@ thread_create (const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
-	thread_unblock (t);
-
+	thread_unblock (t);  // 방금 만듬 thread를 ready리스트에 넣는다
 	//TODO/* 실행중인 스레드와 새로운 스레드의 우선순위 비교해서 yield할지 말지 결정	*/
-	// ready를 넣고, yield해야지   
+	
 	if (thread_get_priority() < t->priority){
 		thread_yield();
 	}
-
-
-	
-	
-
 	return tid;
 }
 
