@@ -110,15 +110,17 @@ sema_up (struct semaphore *sema) {
 
 	ASSERT (sema != NULL);
 
-	old_level = intr_disable (); //의심
+	old_level = intr_disable (); 
 	if (!list_empty (&sema->waiters))
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
+	//여기서 오류나는듯?
 	sema->value++;
 		
 	intr_set_level (old_level);
 	// thread_yield();
 	thread_set_priority(thread_get_priority());
+	
 }
 
 static void sema_test_helper (void *sema_);
@@ -196,13 +198,18 @@ lock_acquire (struct lock *lock) {
 
 	
 	if( lock->holder != NULL){
+
 		thread_current()->wait_on_lock = lock;
-		if(lock->holder->priority < thread_current()->priority){
+
+		if(lock->holder->priority < thread_current()->priority_origin){
 			//priority donation
+
 			// lock->holder->priority_origin = lock->holder->priority; //store the current priority 
-			lock->holder->priority = thread_current()->priority;
-			// maintain donated thrads on list
+	
+			lock->holder->priority = thread_current()->priority_origin;
 		}
+		
+		/* add donor to donation list */
 		list_push_back(&lock->holder->donations, &thread_current()->d_elem); 
 	}
 	sema_down (&lock->semaphore); //semadown에서 lock풀릴때까지 기다렸다가? holder에 넣어준다?
@@ -252,28 +259,30 @@ lock_release (struct lock *lock) {
 
 	int64_t donation_max_pri = lock->holder->priority_origin;
 	
-	// for(struct list_elem *p = &lock->holder->donations.head; p->next == NULL; ){
-	// for(struct list_elem *p = list_front(&lock->holder->donations); p->next == NULL; ){
 	
-	
-	
-	for(struct list_elem *p = &lock->holder->donations.head.next; p!=&lock->holder->donations.tail;){
-		struct thread *temp_t = list_entry(p, struct thread, d_elem);
-	
-		if (temp_t->wait_on_lock == lock){
-			p = list_remove(&p);
-		}
-		else {
-			if ( donation_max_pri < temp_t->priority){
-				donation_max_pri = temp_t->priority;
+	// if(!(list_empty(&thread_current()->donations))){
+		struct list_elem *p ;
+		for(p = list_begin(&lock->holder->donations); p!= list_end(&lock->holder->donations) ;)
+		{
+			struct thread *temp_t = list_entry(p, struct thread, d_elem);
+			// msg("tid = %d \n",temp_t->tid);
+			if (temp_t->wait_on_lock == lock){
+
+				p = list_remove(p);
 			}
-			p = list_next(&p);
-		}
-	}
+			else {
+				if ( donation_max_pri < temp_t->priority){
+					donation_max_pri = temp_t->priority;
+				}
+				p = list_next(p);
+			}
+		}	
+	// }
 	
 	
 	// msg("donation max pri = %d\n\n", donation_max_pri);
 	lock->holder->priority = donation_max_pri;
+	// thread_set_priority(donation_max_pri);
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 
