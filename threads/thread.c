@@ -225,8 +225,9 @@ bool compare_priority(const struct list_elem *a, const struct list_elem *b, void
 	struct thread *thread_a = list_entry(a, struct thread, elem);
     struct thread *thread_b = list_entry(b, struct thread, elem);
 	return thread_a->priority > thread_b -> priority;
-
 }
+
+
 void
 thread_tick (void) {
 	struct thread *t = thread_current ();
