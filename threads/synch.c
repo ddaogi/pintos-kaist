@@ -64,15 +64,15 @@ sema_down (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 	ASSERT (!intr_context ());
 
+	
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		// list_push_back (&sema->waiters, &thread_current ()->elem);
-		//TODO 
 		list_insert_ordered(&sema->waiters, &thread_current () -> elem, compare_priority, NULL); //modified
 		thread_block ();
 	}
-	sema->value--;
 	intr_set_level (old_level);
+	sema->value--;
+	
 }
 
 /* Down or "P" operation on a semaphore, but only if the
@@ -111,15 +111,18 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable (); 
-	if (!list_empty (&sema->waiters))
+	list_sort(&sema->waiters,compare_priority,NULL);
+	if (!list_empty (&sema->waiters)){
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
-	//여기서 오류나는듯?
+		// msg("sema_up if @@@@@@@@@@@@@@@@@@@\n");
+	}
+			
 	sema->value++;
 		
+	thread_set_priority(thread_current()->priority_origin);
+
 	intr_set_level (old_level);
-	// thread_yield();
-	thread_set_priority(thread_get_priority());
 	
 }
 
@@ -200,15 +203,19 @@ lock_acquire (struct lock *lock) {
 	if( lock->holder != NULL){
 
 		thread_current()->wait_on_lock = lock;
-
-		if(lock->holder->priority < thread_current()->priority_origin){
-			//priority donation
-
-			// lock->holder->priority_origin = lock->holder->priority; //store the current priority 
-	
-			lock->holder->priority = thread_current()->priority_origin;
-		}
+		struct thread *t = lock->holder;
 		
+		/* nested donation */
+		while(1){
+			if(t->priority < thread_current()->priority){
+				t->priority = thread_current()->priority;
+			}
+			if( t->wait_on_lock != NULL && t->wait_on_lock->holder != NULL)
+				t = t->wait_on_lock->holder	;
+			else
+				break;	
+		}		
+
 		/* add donor to donation list */
 		list_push_back(&lock->holder->donations, &thread_current()->d_elem); 
 	}
@@ -254,35 +261,30 @@ void
 lock_release (struct lock *lock) {
 	
 	ASSERT (lock != NULL);
-	// if(!lock_held_by_current_thread (lock) ) return; 
 	ASSERT (lock_held_by_current_thread (lock)); // 현재 스레드가 락을 안가지고 있는데,  release를 해주려다 오류남
 
 	int64_t donation_max_pri = lock->holder->priority_origin;
 	
 	
 	// if(!(list_empty(&thread_current()->donations))){
-		struct list_elem *p ;
-		for(p = list_begin(&lock->holder->donations); p!= list_end(&lock->holder->donations) ;)
-		{
-			struct thread *temp_t = list_entry(p, struct thread, d_elem);
-			// msg("tid = %d \n",temp_t->tid);
-			if (temp_t->wait_on_lock == lock){
+	struct list_elem *p ;
+	for(p = list_begin(&lock->holder->donations); p!= list_end(&lock->holder->donations) ;)
+	{
+		struct thread *temp_t = list_entry(p, struct thread, d_elem);
+		// msg("tid = %d \n",temp_t->tid);
+		if (temp_t->wait_on_lock == lock){
 
-				p = list_remove(p);
+			p = list_remove(p);
+		}
+		else {
+			if ( donation_max_pri < temp_t->priority){
+				donation_max_pri = temp_t->priority;
 			}
-			else {
-				if ( donation_max_pri < temp_t->priority){
-					donation_max_pri = temp_t->priority;
-				}
-				p = list_next(p);
-			}
-		}	
-	// }
-	
-	
-	// msg("donation max pri = %d\n\n", donation_max_pri);
+			p = list_next(p);
+		}
+	}	
+		
 	lock->holder->priority = donation_max_pri;
-	// thread_set_priority(donation_max_pri);
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 

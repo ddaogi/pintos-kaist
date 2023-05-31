@@ -339,6 +339,7 @@ thread_unblock (struct thread *t) {
 	// list_push_back (&ready_list, &t->elem);
 	list_insert_ordered(&ready_list, &t->elem, compare_priority, NULL);
 	t->status = THREAD_READY;
+	// msg("unblock@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 	intr_set_level (old_level);
 
 }
@@ -410,11 +411,23 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	/*added_sk*/
-	
+		
+	thread_current() -> priority_origin = new_priority;
+	int64_t donation_max_pri = new_priority;
 
-	thread_current() -> priority = new_priority;
-	// thread_current() ->priority_origin = new_priority; //modified jg
+	struct list_elem *p ;
+	
+	for(p = list_begin(&thread_current()->donations); p!= list_end(&thread_current()->donations) ;)
+	{
+		struct thread *temp_t = list_entry(p, struct thread, d_elem);
+		if ( donation_max_pri < temp_t->priority){
+			donation_max_pri = temp_t->priority;
+		}
+		p = list_next(p);
+	
+	}	
+
+	thread_current() -> priority = donation_max_pri;
 
 	if (!list_empty(&ready_list)){
 		struct thread *t = list_entry(list_front(&ready_list), struct thread, elem);
