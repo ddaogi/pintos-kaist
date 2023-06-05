@@ -352,11 +352,10 @@ load (const char *file_name, struct intr_frame *if_) {
     char *token, *save_ptr;
 	char* argv[10];
    	for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)){
-		// strlcpy(argv[argc], token,PGSIZE);
-		// argc++;
 		argv[argc++]=token;
 	}
 	file_name = argv[0];
+	
 
 
 
@@ -449,21 +448,39 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	if_->rsp = USER_STACK;
-	char* arg_address[10];
+	uintptr_t arg_address[10];
 	
+	/* string passing */
 	for (int i = argc-1; i>=0; i--) { 
 		int argv_len = strlen(argv[i]);
-		
 		if_->rsp = if_->rsp - (argv_len + 1);
-		memcpy(if_->rsp, argv[i], argv_len+1);
-		arg_address[i] = if_->rsp; // arg_address 배열에 현재 문자열 시작 주소 위치를 저장한다.
+		memcpy(if_->rsp, argv[i], argv_len);
+		arg_address[i] = if_->rsp; // arg_address 
 	}
+
+
+
+
 
 	/* padding */
 	while(if_->rsp % 8 != 0){
-		*(char *)(if_->rsp) = 0;
 		if_->rsp--;
+		*(char *)(if_->rsp) = 0;
 	}
+
+	/* */
+	if_->rsp = if_->rsp -8;
+	*(uintptr_t *)if_->rsp = 0;
+
+	if_->rsp = if_->rsp -8;
+	*(uintptr_t *)if_->rsp = 0;
+
+	/* */
+	for(int i= argc-1;i >=0;i--){
+		*(uintptr_t*)(if_->rsp) = arg_address[i];
+		if_->rsp = if_->rsp-8;
+	}
+
 
 	if_->R.rdi = argc;
 	if_->R.rsi = if_->rsp + 8;
@@ -563,7 +580,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* Get a page of memory. */
 		uint8_t *kpage = palloc_get_page (PAL_USER);
 		if (kpage == NULL)
-			return false;
+			return false;  
 
 		/* Load this page. */
 		if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes) {
