@@ -436,9 +436,7 @@ thread_set_priority (int new_priority) {
 			thread_yield();
 		}
 	}
-	/* TODO
-	Set priority considering the donation
-	*/
+
 }
 
 /* Returns the current thread's priority. */

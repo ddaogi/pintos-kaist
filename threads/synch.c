@@ -219,17 +219,8 @@ lock_acquire (struct lock *lock) {
 		/* add donor to donation list */
 		list_push_back(&lock->holder->donations, &thread_current()->d_elem); 
 	}
-	sema_down (&lock->semaphore); //semadown에서 lock풀릴때까지 기다렸다가? holder에 넣어준다?
+	sema_down (&lock->semaphore); 
 	lock->holder = thread_current();
-
-	
-	/*TODO
-	If the lock is not available, store address of the lock.
-	Store the current priority and maintain donated threads on list (multiple donation).
-	Donate priority.
-
-
-*/
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

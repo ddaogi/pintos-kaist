@@ -48,10 +48,19 @@ process_create_initd (const char *file_name) {
 	fn_copy = palloc_get_page (0);
 	if (fn_copy == NULL)
 		return TID_ERROR;
-	strlcpy (fn_copy, file_name, PGSIZE);
+	
+	strlcpy (fn_copy, file_name, PGSIZE); /* 카피하는 이유는?*/
 
-	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	// char *token, *save_ptr;
+	// for( token = strtok_r (file_name, " ", &save_ptr); token !=NULL; token = strtok_r(NULL," ", &save_ptr)){		
+	// }
+	char* save_ptr;
+	char* temp_filename = strtok_r(file_name, " ", &save_ptr);
+		/* Create a new thread to execute FILE_NAME. */
+	// tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy); // origin
+	tid = thread_create(temp_filename, PRI_DEFAULT, initd, fn_copy);
+		
+	
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -142,6 +151,7 @@ __do_fork (void *aux) {
 	if (!pml4_for_each (parent->pml4, duplicate_pte, parent))
 		goto error;
 #endif
+	file_duplicate;
 
 	/* TODO: Your code goes here.
 	 * TODO: Hint) To duplicate the file object, use `file_duplicate`
@@ -169,13 +179,15 @@ process_exec (void *f_name) {
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
 	struct intr_frame _if;
-	_if.ds = _if.es = _if.ss = SEL_UDSEG;
-	_if.cs = SEL_UCSEG;
+	_if.ds = _if.es = _if.ss = SEL_UDSEG; /* User Data Selector*/
+	_if.cs = SEL_UCSEG; /* User code Selector*/
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
 	/* We first kill the current context */
 	process_cleanup ();
 
+
+   
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
@@ -204,6 +216,9 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	for(int i=0;i<1<<30;i++){
+		continue;
+	}
 	return -1;
 }
 
@@ -211,10 +226,13 @@ process_wait (tid_t child_tid UNUSED) {
 void
 process_exit (void) {
 	struct thread *curr = thread_current ();
+	
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+
+	// printf("%s: exit(%d)\n", curr->name, );
 
 	process_cleanup ();
 }
@@ -329,6 +347,19 @@ load (const char *file_name, struct intr_frame *if_) {
 	bool success = false;
 	int i;
 
+	/* Tokenize filename */ //added
+	int argc = 0;
+    char *token, *save_ptr;
+	char* argv[10];
+   	for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)){
+		// strlcpy(argv[argc], token,PGSIZE);
+		// argc++;
+		argv[argc++]=token;
+	}
+	file_name = argv[0];
+
+
+
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
@@ -414,10 +445,31 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
 
+	
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	if_->rsp = USER_STACK;
+	char* arg_address[10];
+	
+	for (int i = argc-1; i>=0; i--) { 
+		int argv_len = strlen(argv[i]);
+		
+		if_->rsp = if_->rsp - (argv_len + 1);
+		memcpy(if_->rsp, argv[i], argv_len+1);
+		arg_address[i] = if_->rsp; // arg_address 배열에 현재 문자열 시작 주소 위치를 저장한다.
+	}
 
+	while(if_->rsp % 8 != 0){
+		if_->rsp-- = 0;
+			
+		
+	}
+	if_->R.rdi = argc;
+	if_->R.rsi = if_->rsp + 8;
 	success = true;
+
+	hex_dump((uintptr_t)if_->rsp,if_->rsp,(uintptr_t)USER_STACK-if_->rsp,true);
+	
 
 done:
 	/* We arrive here whether the load is successful or not. */

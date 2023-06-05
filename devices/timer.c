@@ -15,7 +15,7 @@
 #error 8254 timer requires TIMER_FREQ >= 19
 #endif
 #if TIMER_FREQ > 1000
-#error TIMER_FREQ <= 1000 remended
+#error TIMER_FREQ <= 1000 recommended
 #endif
 
 /* Number of timer ticks since OS booted. */
@@ -94,17 +94,10 @@ timer_elapsed (int64_t then) {
 void
 timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks (); // OS부팅후 지난틱시간
-	// printf("start= %lld \n",start);
 	ASSERT (intr_get_level () == INTR_ON); //인터럽트 상태
-	
-	/* original code */
-	//start 이후 경과한 시간이 틱보다 작을경우, 계속 thread_yield()를 해줌
-	// while (timer_elapsed (start) < ticks) 
-	// 	thread_yield ();
-	
-	// if(timer_elapsed (start) < ticks){
-	thread_sleep(start+ticks);
-	// }
+	if(timer_elapsed (start) < ticks){
+		thread_sleep(start+ticks);
+	}
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -136,11 +129,6 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
-	
-	// while( return_mintick() <= ticks){
-	// 	pop_mintick();
-	// 	save_mintick();
-	// }
 	wakeup(ticks);
 
 	/*TODO
