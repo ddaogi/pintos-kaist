@@ -459,11 +459,12 @@ load (const char *file_name, struct intr_frame *if_) {
 		arg_address[i] = if_->rsp; // arg_address 배열에 현재 문자열 시작 주소 위치를 저장한다.
 	}
 
+	/* padding */
 	while(if_->rsp % 8 != 0){
-		if_->rsp-- = 0;
-			
-		
+		*(char *)(if_->rsp) = 0;
+		if_->rsp--;
 	}
+
 	if_->R.rdi = argc;
 	if_->R.rsi = if_->rsp + 8;
 	success = true;
