@@ -57,7 +57,7 @@ int process_add_file(struct file *f){
 }
 /* added-  프로세스의 파일 디스크립터 테이블을 검색하여 파일 객체의 주소를 리턴*/
 struct file *process_get_file(int fd){
-	if( fd >= thread_current()->next_fd || fd< 0){
+	if( fd<0 || fd >=64 || thread_current()->fdt[fd] == NULL){
 		return NULL;
 	}
 	return thread_current()->fdt[fd];

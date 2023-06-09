@@ -265,9 +265,9 @@ unsigned tell (int fd){
 }
 
 /* Close the file descriptor fd */
-void close (int fd){
+void close (int fd){    
     file_close(process_get_file(fd));
-    process_close_file(fd);
+    thread_current()->fdt[fd] = NULL;
 }
 
 /* 주소 값이 유저 영역에서 사용하는 주소 값인지 확인 하는 함수
