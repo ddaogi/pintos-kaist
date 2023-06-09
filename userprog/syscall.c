@@ -165,17 +165,14 @@ bool remove (const char *file){
 
 /* 성공시 fd를 생성 */
 int open (const char *file){
-    // check_address(file);
-    if(file == NULL){
-        return -1;
-    }
+    check_address(file);
     struct file *open_file = filesys_open(file);
 
     if(open_file == NULL){
         return -1;
     }
-
     int fd = process_add_file(open_file);
+    printf("%d fd 값!!!! \n\n", fd);
     if( fd == -1){
         file_close(open_file);
     }
@@ -205,7 +202,6 @@ int read (int fd, void *buffer, unsigned length){
 
 /* buffer : 기록할 데이터를 저장한 버퍼의 주소 값, length: 데이터 크기 */
 /* 열린 파일의 데이터를 기록 시스템 콜 기록한 바이트 수 반환, 실패시 -1 반환*/
-/* TODO LOCK?*/
 int write (int fd, const void *buffer, unsigned length){
     check_address(buffer);
     struct file* f =process_get_file(fd);

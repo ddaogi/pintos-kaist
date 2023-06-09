@@ -45,7 +45,6 @@ int process_add_file(struct file *f){
 	while (cur_t->next_fd < 64 && fd_table[cur_t->next_fd]){
 		cur_t->next_fd++;
 	}
-
 	if( cur_t->next_fd >= 64)
 		return -1;
 	fd_table[cur_t->next_fd] = f;
