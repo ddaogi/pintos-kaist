@@ -13,7 +13,7 @@
 #include "user/syscall.h"
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
-
+int _read (int fd, void *buffer, unsigned length);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -79,7 +79,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
             f->R.rax = filesize(f->R.rdi);
             break;
         case SYS_READ:
-            f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
+            f->R.rax = _read(f->R.rdi, f->R.rsi, f->R.rdx);
             break;
         case SYS_WRITE:
             f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
@@ -174,22 +174,18 @@ int open (const char *file){
     if(open_file == NULL){
         return -1;
     }
-    // printf("1111111111111111111111111111111 \n\n\n");
-    
     int fd = process_add_file(open_file);
 
-    // printf("222222222222222222222222222222 \n\n\n");    
     if( fd == -1){
         file_close(open_file);
     }
-    // printf("3333333333333333333333333333333333 \n\n\n");
     return fd;
 }
 
 
 /* 파일의 크기를 알려주는 시스템 콜   성공시 파일의 크기 반환 실패시 -1 반환*/
 int filesize (int fd){
-    struct file* f = process_get_file(fd);
+    struct file* f = thread_current()->fdt[fd];
     if(f == NULL){
         return -1;
     }
@@ -198,12 +194,38 @@ int filesize (int fd){
 }
 
 /* 열린 파일의 데이터를 읽는 시스템 콜 , 성공시 읽은 바이트 수 반환, 실패시 -1 반환 */
-int read (int fd, void *buffer, unsigned length){
+int _read (int fd, void *buffer, unsigned length){
     check_address(buffer);
-    struct file*f = process_get_file(fd);
+    if(fd==0){
+        char key;
+        char** pBuf= &buffer;
+        int len=1;
+        for(int i = 0;i<length;i++){
+            key = input_getc();
+            if(key == -1){
+                *pBuf = '\n';
+                break;
+            }
+            *pBuf= key;
+            pBuf++;
+            len++;
+        }
+        return len;
+    }
+    else if(fd == 1){
+        return -1;
+    }
+
+    lock_acquire(&filesys_lock);
+    struct file*f = thread_current()->fdt[fd];
     if( f== NULL){
         return -1;
     }
+    off_t return_length;
+    return_length = file_read(f,buffer,length);
+    lock_release(&filesys_lock);
+    // printf("return_length = %d \n\n\n\n\n\n\n", return_length);
+    return return_length;
 }
 
 
@@ -211,12 +233,13 @@ int read (int fd, void *buffer, unsigned length){
 /* 열린 파일의 데이터를 기록 시스템 콜 기록한 바이트 수 반환, 실패시 -1 반환*/
 int write (int fd, const void *buffer, unsigned length){
     check_address(buffer);
-    struct file* f =process_get_file(fd);
     int byte_written;
     if(fd == 1){
         putbuf(buffer, length);
         byte_written = length;
+        return byte_written;
     }   
+    struct file* f = thread_current()->fdt[fd];
     if(f == NULL){
         return -1;
     }
