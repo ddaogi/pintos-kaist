@@ -282,20 +282,20 @@ thread_create (const char *name, int priority,
 	if (t == NULL)
 		return TID_ERROR;
 
+	// if(t->fdt == NULL)
+	// 	return TID_ERROR;
+	// t->next_fd = 2;
+	// t->fdt[0] = 0;
+	// t->fdt[1] = 1;
 
-	/*added for project2    sk  0609*/
-	struct file** new_fdt = (struct file**)palloc_get_multiple(PAL_ZERO, 3);
-	t->fdt = new_fdt;
-	if(t->fdt == NULL)
-		return TID_ERROR;
-	t->next_fd = 2;
-	t->fdt[0] = 0;
-	t->fdt[1] = 1;
 
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
+	/*added for project2    sk  0609*/
+	struct file** new_fdt = (struct file**)palloc_get_multiple(PAL_ZERO, 3);
+	t->fdt = new_fdt;
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */

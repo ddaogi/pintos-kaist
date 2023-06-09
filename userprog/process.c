@@ -40,15 +40,19 @@ process_init (void) {
 
 /* added-  파일 객체에 대한 파일 디스크립터 생성 */
 int process_add_file(struct file *f){
-	struct thread *cur_t = thread_current();
-	struct file **fd_table = cur_t -> fdt;
-	while (cur_t->next_fd < 64 && fd_table[cur_t->next_fd]){
-		cur_t->next_fd++;
+	// printf("getfdt\n\n");
+	struct file **fdt = thread_current()->fdt;
+	int i = 2;
+	// printf("%p\n\n",fdt);
+	while (i < 64 && fdt[i]!=NULL){
+		// printf("%d\n",i);
+		i++;
 	}
-	if( cur_t->next_fd >= 64)
+	if( i >= 64)
 		return -1;
-	fd_table[cur_t->next_fd] = f;
-	return cur_t->next_fd;
+	// printf("hihihih\n");
+	thread_current()->fdt[i] = f;
+	return i;
 
 }
 /* added-  프로세스의 파일 디스크립터 테이블을 검색하여 파일 객체의 주소를 리턴*/
@@ -256,7 +260,7 @@ process_wait (tid_t child_tid UNUSED) {
 	// 	continue;
 	// }
 	for(int i = 0;i<1<<25;i++){
-
+		continue;
 	}
 	return -1;
 }
@@ -271,7 +275,6 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
-	// printf("%s: exit(%d)\n", curr->name, );
 
 	process_cleanup ();
 }

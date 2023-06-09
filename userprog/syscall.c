@@ -60,6 +60,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
         case SYS_FORK:
             f->R.rax = fork(f->R.rdi);
             break;
+        case SYS_EXEC:
+            // f->R.rax = exec();
+            break;
         case SYS_WAIT:
             f->R.rax = process_wait(f->R.rdi);
             break;
@@ -92,7 +95,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
             break;
         default:
             // printf("System Call \n");
-            exit(-1);
+            thread_exit();
             break;
     }
 
@@ -154,12 +157,12 @@ int wait (pid_t pid){
 }
 /* create file, success = true, fail = false*/
 bool create (const char *file, unsigned initial_size){
-    // check_address(file);
+    check_address(file);
     return filesys_create(file,initial_size);
 }
 
 bool remove (const char *file){
-    // check_address(file);
+    check_address(file);
     return filesys_remove(file);
 }
 
@@ -171,11 +174,15 @@ int open (const char *file){
     if(open_file == NULL){
         return -1;
     }
+    // printf("1111111111111111111111111111111 \n\n\n");
+    
     int fd = process_add_file(open_file);
-    printf("%d fd 값!!!! \n\n", fd);
+
+    // printf("222222222222222222222222222222 \n\n\n");    
     if( fd == -1){
         file_close(open_file);
     }
+    // printf("3333333333333333333333333333333333 \n\n\n");
     return fd;
 }
 
