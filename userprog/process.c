@@ -27,11 +27,48 @@ static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
 
+/* Newly added function for project 2 */
+// int process_add_file(struct file *f);
+// struct file *process_get_file(int fd);
+// void process_close_file(int fd);
+
 /* General process initializer for initd and other process. */
 static void
 process_init (void) {
 	struct thread *current = thread_current ();
 }
+
+/* added-  파일 객체에 대한 파일 디스크립터 생성 */
+int process_add_file(struct file *f){
+	struct thread *cur_t = thread_current();
+	struct file **fd_table = cur_t -> fdt;
+	while (cur_t->next_fd < 64 && fd_table[cur_t->next_fd]){
+		cur_t->next_fd++;
+	}
+
+	if( cur_t->next_fd >= 64)
+		return -1;
+	fd_table[cur_t->next_fd] = f;
+	return cur_t->next_fd;
+
+}
+/* added-  프로세스의 파일 디스크립터 테이블을 검색하여 파일 객체의 주소를 리턴*/
+struct file *process_get_file(int fd){
+	if( fd >= thread_current()->next_fd || fd< 0){
+		return NULL;
+	}
+	return thread_current()->fdt[fd];
+}
+
+/* added-   file_close()를 호출하여, 파일 디스크립터에 해당하는 파일의 inode reference count 를 1씩 감소 
+	해당 디스크립터 entry를 null로 초기화 */
+void process_close_file(int fd){
+	file_close(thread_current()->fdt[fd]);
+}
+
+
+
+
 
 /* Starts the first userland program, called "initd", loaded from FILE_NAME.
  * The new thread may be scheduled (and may even exit)
@@ -216,8 +253,11 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	for(int i=0;i<1<<30;i++){
-		continue;
+	// for(int i=0;i<1<<30;i++){
+	// 	continue;
+	// }
+	for(int i = 0;i<1<<25;i++){
+
 	}
 	return -1;
 }
@@ -350,7 +390,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Tokenize filename */ //added
 	int argc = 0;
     char *token, *save_ptr;
-	char* argv[10];
+	char* argv[128];
    	for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)){
 		argv[argc++]=token;
 	}
@@ -448,7 +488,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	if_->rsp = USER_STACK;
-	uintptr_t arg_address[10];
+	uintptr_t arg_address[128];
 	
 	/* string passing */
 	for (int i = argc-1; i>=0; i--) { 
@@ -459,35 +499,31 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 
-
-
-
 	/* padding */
 	while(if_->rsp % 8 != 0){
 		if_->rsp--;
-		*(char *)(if_->rsp) = 0;
+		// *(char*)if_->rsp =0;
 	}
 
-	/* */
+	/*argv[argc]*/
 	if_->rsp = if_->rsp -8;
-	*(uintptr_t *)if_->rsp = 0;
+	// *(uintptr_t *)if_->rsp = 0;
 
-	if_->rsp = if_->rsp -8;
-	*(uintptr_t *)if_->rsp = 0;
+	if_->rsp = if_->rsp-8;
 
-	/* */
+
 	for(int i= argc-1;i >=0;i--){
 		*(uintptr_t*)(if_->rsp) = arg_address[i];
 		if_->rsp = if_->rsp-8;
 	}
-
-
+	
 	if_->R.rdi = argc;
 	if_->R.rsi = if_->rsp + 8;
 	success = true;
 
-	hex_dump((uintptr_t)if_->rsp,if_->rsp,(uintptr_t)USER_STACK-if_->rsp,true);
+	// hex_dump((uintptr_t)if_->rsp,if_->rsp,(uintptr_t)USER_STACK-if_->rsp,true);
 	
+
 
 done:
 	/* We arrive here whether the load is successful or not. */

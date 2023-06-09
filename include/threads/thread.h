@@ -110,12 +110,20 @@ struct thread {
 	unsigned magic;                     /* Detects stack overflow. */
 	int64_t local_tick;    /* local tick */
 
-
 	/* for priority donation TODO*/
 	struct list_elem d_elem;
 	int priority_origin;
 	struct lock* wait_on_lock;
 	struct list donations;
+	/* added for project 2*/
+	int exit_status;
+	struct list child_list;
+	struct list_elem c_elem;
+	struct thread* parent;
+	
+	struct file **fdt;
+	int next_fd;
+	
 
 };
 
