@@ -40,17 +40,13 @@ process_init (void) {
 
 /* added-  파일 객체에 대한 파일 디스크립터 생성 */
 int process_add_file(struct file *f){
-	// printf("getfdt\n\n");
 	struct file **fdt = thread_current()->fdt;
 	int i = 2;
-	// printf("%p\n\n",fdt);
 	while (i < 64 && fdt[i]!=NULL){
-		// printf("%d\n",i);
 		i++;
 	}
 	if( i >= 64)
 		return -1;
-	// printf("hihihih\n");
 	thread_current()->fdt[i] = f;
 	return i;
 
@@ -91,13 +87,9 @@ process_create_initd (const char *file_name) {
 	
 	strlcpy (fn_copy, file_name, PGSIZE); /* 카피하는 이유는?*/
 
-	// char *token, *save_ptr;
-	// for( token = strtok_r (file_name, " ", &save_ptr); token !=NULL; token = strtok_r(NULL," ", &save_ptr)){		
-	// }
 	char* save_ptr;
 	char* temp_filename = strtok_r(file_name, " ", &save_ptr);
-		/* Create a new thread to execute FILE_NAME. */
-	// tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy); // origin
+	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create(temp_filename, PRI_DEFAULT, initd, fn_copy);
 		
 	
@@ -125,9 +117,11 @@ initd (void *f_name) {
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
+	
 	return thread_create (name,
 			PRI_DEFAULT, __do_fork, thread_current ());
 }
+
 
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
@@ -141,21 +135,29 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	bool writable;
 
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
-
+	if(is_kernel_vaddr(va)){
+		return true;
+	}
 	/* 2. Resolve VA from the parent's page map level 4. */
 	parent_page = pml4_get_page (parent->pml4, va);
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
+	newpage = palloc_get_page(PAL_USER); //added
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+	memcpy(newpage,parent_page,PGSIZE);
+	writable = is_writable(pte);
+	
 
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
-		/* 6. TODO: if fail to insert page, do error handling. */
+	/* 6. TODO: if fail to insert page, do error handling. */
+		return false;
+		/*나중에 palloc free 해줘야함 (우근이형)*/
 	}
 	return true;
 }
@@ -170,8 +172,10 @@ __do_fork (void *aux) {
 	struct intr_frame if_;
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
+	
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;
+	struct intr_frame* parent_if = &parent->tf_2;
+	
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
@@ -191,13 +195,21 @@ __do_fork (void *aux) {
 	if (!pml4_for_each (parent->pml4, duplicate_pte, parent))
 		goto error;
 #endif
-	file_duplicate;
+	// file_duplicate;
+	
 
 	/* TODO: Your code goes here.
 	 * TODO: Hint) To duplicate the file object, use `file_duplicate`
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
+	
+	/*parents에 있는 전체 파일을 복사하는것*/
+	for(int i = 0; i<64; i++){
+		if(parent->fdt[i] == NULL)
+			continue;
+		current->fdt[i] = file_duplicate(parent->fdt[i]);
+	}
 
 	process_init ();
 

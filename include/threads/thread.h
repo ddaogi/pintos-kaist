@@ -121,8 +121,11 @@ struct thread {
 	struct list_elem c_elem;
 	struct thread* parent;
 	
+	
 	struct file **fdt;
+	struct intr_frame tf_2;
 	int next_fd;
+	
 	
 
 };

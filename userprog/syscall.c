@@ -48,7 +48,7 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	
+	memcpy(&thread_current()->tf_2, f,sizeof(struct intr_frame));
 	switch (f->R.rax) {
         case SYS_HALT:
             halt();
@@ -117,9 +117,23 @@ void exit(int status) {
     thread_exit();
 }
 
-
+/*
+피호출자(callee) 저장 레지스터인 %RBX, %RSP, %RBP와 %R12 - %R15를 제외한 레지스터 값을 복제할 필요가 없습니다.
+자식 프로세스의 pid를 반환해야 합니다. 그렇지 않으면 유효한 pid가 아닐 수 있습니다. 자식 프로세스에서 반환 값은 0이어야 합니다. 
+자식 프로세스에는 파일 식별자 및 가상 메모리 공간을 포함한 복제된 리소스가 있어야 합니다. 
+부모 프로세스는 자식 프로세스가 성공적으로 복제되었는지 여부를 알 때까지 fork에서 반환해서는 안 됩니다. 
+즉, 자식 프로세스가 리소스를 복제하지 못하면 부모의 fork() 호출이 TID_ERROR를 반환할 것입니다.
+템플릿은 `threads/mmu.c`의 `pml4_for_each`를 사용하여 해당되는 페이지 테이블 구조를 포함한 전체 사용자 메모리 공간을 복사하지만,
+전달된 `pte_for_each_func`의 누락된 부분을 채워야 합니다.
+1. 차일드리스트 만들기  거기서 pid 찾는거 만들어야하고, sema 써야하고, 그다음에 기억안남 ㅇㅋ
+결과낼때, exit에서 status 그거를 리턴하잖아
+*/
 pid_t fork (const char *thread_name){
+    tid_t child_tid = process_fork(thread_name, &thread_current()->tf_2);
 
+   
+    
+    return child_tid;
 }
 
 /*
@@ -131,7 +145,7 @@ Run program which execute cmd_line.
 Create thread and run. exec() in pintos is equivalent to fork()+exec() in Unix.
 Pass the arguments to program to be executed.
 Return pid of the new child process.
-If it fails to load the program or to create a process, return -1.
+If it fails to load the program or to create a process, exit(-1)
 Parent process calling exec should wait until child process is created and loads the executable completely.
 */
 int exec (const char *file){
@@ -224,7 +238,6 @@ int _read (int fd, void *buffer, unsigned length){
     off_t return_length;
     return_length = file_read(f,buffer,length);
     lock_release(&filesys_lock);
-    // printf("return_length = %d \n\n\n\n\n\n\n", return_length);
     return return_length;
 }
 
