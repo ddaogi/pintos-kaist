@@ -26,6 +26,7 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+struct thread* get_child(tid_t pid);
 
 /* Newly added function for project 2 */
 // int process_add_file(struct file *f);
@@ -117,9 +118,13 @@ initd (void *f_name) {
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
-	
-	return thread_create (name,
+	tid_t return_tid =thread_create (name,
 			PRI_DEFAULT, __do_fork, thread_current ());
+
+	struct thread* child = get_child(return_tid);
+	sema_down(&child->fork_sema);
+	
+	return return_tid;
 }
 
 
@@ -195,8 +200,6 @@ __do_fork (void *aux) {
 	if (!pml4_for_each (parent->pml4, duplicate_pte, parent))
 		goto error;
 #endif
-	// file_duplicate;
-	
 
 	/* TODO: Your code goes here.
 	 * TODO: Hint) To duplicate the file object, use `file_duplicate`
@@ -205,18 +208,24 @@ __do_fork (void *aux) {
 	 * TODO:       the resources of parent.*/
 	
 	/*parents에 있는 전체 파일을 복사하는것*/
-	for(int i = 0; i<64; i++){
+	for(int i = 2; i<64; i++){
 		if(parent->fdt[i] == NULL)
 			continue;
-		current->fdt[i] = file_duplicate(parent->fdt[i]);
+		current->fdt[i] = (parent->fdt[i]);
 	}
+	// list_push_back(&parent->child_list, &current->c_elem);
+	// current->parent = parent;
+	
 
 	process_init ();
+	sema_up(&current->fork_sema);
+	if_.R.rax = 0;
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
 		do_iret (&if_);
 error:
+	sema_up(&parent->fork_sema);     
 	thread_exit ();
 }
 
@@ -268,13 +277,12 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	// for(int i=0;i<1<<30;i++){
-	// 	continue;
-	// }
-	for(int i = 0;i<1<<25;i++){
-		continue;
-	}
-	return -1;
+		/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
+	 * XXX:       to add infinite loop here before
+	 * XXX:       implementing the process_wait. */
+	for(int i =0;i<1<<25;i++){
+
+    }
 }
 
 /* Exit the process. This function is called by thread_exit (). */
@@ -757,3 +765,22 @@ setup_stack (struct intr_frame *if_) {
 	return success;
 }
 #endif /* VM */
+
+
+
+struct thread* get_child(tid_t pid){
+	struct thread* curr = thread_current();
+	if(!list_empty(&curr->child_list)){
+		for(struct list_elem* i = list_front(&curr->child_list); i != list_tail(&curr->child_list);i=list_next(i)){
+			struct thread* temp_t = list_entry(i, struct thread, c_elem);
+			if(temp_t->tid == pid){
+				return temp_t;
+			}
+		}
+	}
+	return NULL;
+}
+
+void remove_child(tid_t pid){
+
+}

@@ -13,6 +13,7 @@
 #include "intrinsic.h"
 #ifdef USERPROG
 #include "userprog/process.h"
+
 #endif
 
 
@@ -175,7 +176,6 @@ thread_start (void) {
 	sema_init (&idle_started, 0);
 	// thread_create ("idle", PRI_MIN, idle, &idle_started);
 	thread_create ("idle", PRI_DEFAULT, idle, &idle_started);
-// 
 
 	/* Start preemptive thread scheduling. */
 	intr_enable ();
@@ -282,13 +282,6 @@ thread_create (const char *name, int priority,
 	if (t == NULL)
 		return TID_ERROR;
 
-	// if(t->fdt == NULL)
-	// 	return TID_ERROR;
-	// t->next_fd = 2;
-	// t->fdt[0] = 0;
-	// t->fdt[1] = 1;
-
-
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
@@ -307,6 +300,8 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
+
+	list_push_back(&thread_current()->child_list, &t->c_elem);
 
 	/* Add to run queue. */
 	thread_unblock (t);  // 방금 만듬 thread를 ready리스트에 넣는다
@@ -550,6 +545,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->wait_on_lock = NULL;
 	list_init(&t->donations);
 	list_init(&t->child_list);
+	sema_init(&t->fork_sema, 0);
+	t->exit_status=1;
+
+
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

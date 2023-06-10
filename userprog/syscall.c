@@ -10,6 +10,7 @@
 /* added for project2 */
 #include "filesys/filesys.h"
 #include "filesys/file.h"
+#include "userprog/process.h"
 #include "user/syscall.h"
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -61,10 +62,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
             f->R.rax = fork(f->R.rdi);
             break;
         case SYS_EXEC:
-            // f->R.rax = exec();
+            f->R.rax = exec(f->R.rdi);
             break;
         case SYS_WAIT:
-            f->R.rax = process_wait(f->R.rdi);
+            f->R.rax = wait(f->R.rdi);
             break;
         case SYS_CREATE:
             f->R.rax = create(f->R.rdi,f->R.rsi);
@@ -129,11 +130,9 @@ void exit(int status) {
 결과낼때, exit에서 status 그거를 리턴하잖아
 */
 pid_t fork (const char *thread_name){
-    tid_t child_tid = process_fork(thread_name, &thread_current()->tf_2);
-
-   
-    
-    return child_tid;
+    tid_t return_tid = process_fork(thread_name, &thread_current()->tf_2);
+      
+    return return_tid;
 }
 
 /*
@@ -167,7 +166,8 @@ wait fails and return -1 if
 - The process that calls wait has already called wait on pid.
 */
 int wait (pid_t pid){
-        
+    return 81;
+    
 }
 /* create file, success = true, fail = false*/
 bool create (const char *file, unsigned initial_size){

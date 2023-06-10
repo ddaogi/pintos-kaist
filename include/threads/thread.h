@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -121,13 +122,11 @@ struct thread {
 	struct list_elem c_elem;
 	struct thread* parent;
 	
-	
 	struct file **fdt;
 	struct intr_frame tf_2;
 	int next_fd;
-	
-	
-
+	struct semaphore fork_sema;		
+	struct semaphore wait_sema;
 };
 
 /* If false (default), use round-robin scheduler.
