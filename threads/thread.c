@@ -287,7 +287,7 @@ thread_create (const char *name, int priority,
 	tid = t->tid = allocate_tid ();
 
 	/*added for project2    sk  0609*/
-	struct file** new_fdt = (struct file**)palloc_get_multiple(PAL_ZERO, 3);
+	struct file** new_fdt = (struct file**)palloc_get_page(PAL_ZERO);
 	t->fdt = new_fdt;
 
 	/* Call the kernel_thread if it scheduled.
@@ -546,6 +546,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	list_init(&t->donations);
 	list_init(&t->child_list);
 	sema_init(&t->fork_sema, 0);
+	sema_init(&t->wait_sema, 0);
 	t->exit_status=1;
 
 

@@ -211,11 +211,10 @@ __do_fork (void *aux) {
 	for(int i = 2; i<64; i++){
 		if(parent->fdt[i] == NULL)
 			continue;
-		current->fdt[i] = (parent->fdt[i]);
+		current->fdt[i] = file_duplicate(parent->fdt[i]);
 	}
 	// list_push_back(&parent->child_list, &current->c_elem);
-	// current->parent = parent;
-	
+	// current->parent = parent;	
 
 	process_init ();
 	sema_up(&current->fork_sema);
@@ -277,12 +276,13 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-		/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
-	 * XXX:       to add infinite loop here before
-	 * XXX:       implementing the process_wait. */
-	for(int i =0;i<1<<25;i++){
-
-    }
+	
+	struct thread* child = get_child(child_tid);
+	if(child == NULL)
+		return -1;
+	sema_down(&child->wait_sema);
+	
+	return child->exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */

@@ -49,7 +49,6 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	memcpy(&thread_current()->tf_2, f,sizeof(struct intr_frame));
 	switch (f->R.rax) {
         case SYS_HALT:
             halt();
@@ -59,6 +58,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
             f->R.rax = f->R.rdi;
             break;
         case SYS_FORK:
+        	memcpy(&thread_current()->tf_2, f,sizeof(struct intr_frame));
             f->R.rax = fork(f->R.rdi);
             break;
         case SYS_EXEC:
@@ -115,6 +115,10 @@ void exit(int status) {
     struct thread *cur = thread_current();
     cur->exit_status = status;
     printf("%s: exit(%d)\n", thread_name(), status); 	
+    sema_up(&cur->wait_sema);
+    // printf("sema value %d   fork sema value %d \n\n",cur->wait_sema.value, cur->fork_sema.value);
+    // printf("size of intr_frame structure %lu sema %lu \n\n",sizeof(struct intr_frame),sizeof(struct semaphore));
+    // printf("wait sema  address%p, tf2 address %p \n",&cur->wait_sema,&cur->tf_2 );
     thread_exit();
 }
 
@@ -166,7 +170,7 @@ wait fails and return -1 if
 - The process that calls wait has already called wait on pid.
 */
 int wait (pid_t pid){
-    return 81;
+    return process_wait(pid);
     
 }
 /* create file, success = true, fail = false*/

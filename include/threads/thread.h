@@ -123,10 +123,11 @@ struct thread {
 	struct thread* parent;
 	
 	struct file **fdt;
-	struct intr_frame tf_2;
 	int next_fd;
-	struct semaphore fork_sema;		
-	struct semaphore wait_sema;
+	struct semaphore fork_sema;		// size 40
+	struct semaphore wait_sema;    //size 40
+	struct intr_frame tf_2; // size 192
+	
 };
 
 /* If false (default), use round-robin scheduler.
