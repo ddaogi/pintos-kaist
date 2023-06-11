@@ -124,6 +124,7 @@ struct thread {
 	
 	struct file **fdt;
 	int next_fd;
+	struct semaphore free_sema; 
 	struct semaphore fork_sema;		// size 40
 	struct semaphore wait_sema;    //size 40
 	struct intr_frame tf_2; // size 192

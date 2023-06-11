@@ -116,6 +116,7 @@ void exit(int status) {
     cur->exit_status = status;
     printf("%s: exit(%d)\n", thread_name(), status); 	
     sema_up(&cur->wait_sema);
+    // sema_down(&cur->free_sema);
     // printf("sema value %d   fork sema value %d \n\n",cur->wait_sema.value, cur->fork_sema.value);
     // printf("size of intr_frame structure %lu sema %lu \n\n",sizeof(struct intr_frame),sizeof(struct semaphore));
     // printf("wait sema  address%p, tf2 address %p \n",&cur->wait_sema,&cur->tf_2 );

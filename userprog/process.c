@@ -282,6 +282,9 @@ process_wait (tid_t child_tid UNUSED) {
 		return -1;
 	sema_down(&child->wait_sema);
 	
+	list_remove(&child->c_elem);
+	// sema_up(&child->free_sema);
+	
 	return child->exit_status;
 }
 

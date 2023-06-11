@@ -547,6 +547,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	list_init(&t->child_list);
 	sema_init(&t->fork_sema, 0);
 	sema_init(&t->wait_sema, 0);
+	sema_init(&t->free_sema, 0);
 	t->exit_status=1;
 
 
@@ -554,7 +555,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
-   empty.  (If the running thread can continue running, then it
+   empty.  (If the running thread can continue runningz, then it
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
 static struct thread *
